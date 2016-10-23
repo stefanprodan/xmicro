@@ -9,7 +9,7 @@ import (
 	"github.com/stefanprodan/xmicro/xconsul"
 )
 
-func leaderResponse(w http.ResponseWriter, r *http.Request) {
+func statusResponse(w http.ResponseWriter, r *http.Request) {
 	election := r.Context().Value(ElectionContextKey).(*xconsul.Election)
 	status := fmt.Sprintf("Leader name is %s. Leader %v", election.Leader(), election.IsLeader())
 	w.Write([]byte(status))
@@ -17,10 +17,10 @@ func leaderResponse(w http.ResponseWriter, r *http.Request) {
 
 func StartApi(address string, election *xconsul.Election) {
 
-	leaderHandler := ElectionMiddleware(election, http.HandlerFunc(leaderResponse))
+	electionStatusHandler := ElectionMiddleware(election, http.HandlerFunc(statusResponse))
 
 	mux := new(http.ServeMux)
-	mux.Handle("/", leaderHandler)
+	mux.Handle("/", electionStatusHandler)
 	log.Printf("API started on %s", address)
 	err := http.ListenAndServe(address, mux)
 	if err != nil {
