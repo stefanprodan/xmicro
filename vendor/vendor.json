@@ -1,0 +1,31 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "wndKZ4SHvLWOULB2ZEHlvmkY3Wg=",
+			"path": "github.com/hashicorp/consul/api",
+			"revision": "104b12040a8fbe6153d1a4f1be1b73d37bf699e5",
+			"revisionTime": "2016-10-20T18:40:03Z"
+		},
+		{
+			"checksumSHA1": "QOHiHrZ+uHU4e+yGhdGgOIfX6cI=",
+			"path": "github.com/hashicorp/consul/watch",
+			"revision": "104b12040a8fbe6153d1a4f1be1b73d37bf699e5",
+			"revisionTime": "2016-10-20T18:40:03Z"
+		},
+		{
+			"checksumSHA1": "LujOMg95ZfmZZZJWYl5OT7BFdy8=",
+			"path": "github.com/hashicorp/go-cleanhttp",
+			"revision": "ad28ea4487f05916463e2423a55166280e8254b5",
+			"revisionTime": "2016-04-07T17:41:26Z"
+		},
+		{
+			"checksumSHA1": "Xfvb75RRo0Qo8xxT3ITqsk2H9WQ=",
+			"path": "github.com/hashicorp/serf/coordinate",
+			"revision": "1d4fa605f6ff3ed628d7ae5eda7c0e56803e72a5",
+			"revisionTime": "2016-10-07T00:41:22Z"
+		}
+	],
+	"rootPath": "github.com/stefanprodan/xmicro"
+}
