@@ -9,6 +9,10 @@ import (
 	"github.com/stefanprodan/xmicro/xconsul"
 )
 
+func pingResponse(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("pong"))
+}
+
 func statusResponse(w http.ResponseWriter, r *http.Request) {
 	election := r.Context().Value(ElectionContextKey).(*xconsul.Election)
 	status := fmt.Sprintf("Leader name is %s. Leader %v", election.Leader(), election.IsLeader())
@@ -18,9 +22,11 @@ func statusResponse(w http.ResponseWriter, r *http.Request) {
 func StartApi(address string, election *xconsul.Election) {
 
 	electionStatusHandler := ElectionMiddleware(election, http.HandlerFunc(statusResponse))
+	pingHandler := ElectionMiddleware(election, http.HandlerFunc(pingResponse))
 
 	mux := new(http.ServeMux)
 	mux.Handle("/", electionStatusHandler)
+	mux.Handle("/ping", pingHandler)
 	log.Printf("API started on %s", address)
 	err := http.ListenAndServe(address, mux)
 	if err != nil {
