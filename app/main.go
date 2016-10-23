@@ -20,6 +20,7 @@ func main() {
 
 	port := flag.Int("port", 8000, "HTTP port")
 	env := flag.String("env", "DEBUG", "ENV: DEBUG, DEV, STG, PROD")
+	role := flag.String("role", "frontend", "Roles: proxy, frontend, backend, storage")
 	flag.Parse()
 
 	var (
@@ -29,7 +30,7 @@ func main() {
 
 	election := xconsul.BeginElection(host)
 
-	log.Println("Starting xmicro " + host + " on port " + fmt.Sprintf("%v", *port) + " in " + *env + " mode. Work dir " + workDir)
+	log.Println("Starting xmicro " + host + " role " + *role + " on port " + fmt.Sprintf("%v", *port) + " in " + *env + " mode. Work dir " + workDir)
 
 	go StartApi(fmt.Sprintf(":%v", *port), election)
 
