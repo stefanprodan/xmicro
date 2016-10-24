@@ -19,5 +19,7 @@ HEALTHCHECK CMD curl --fail http://localhost:8000/ping || exit 1
 
 EXPOSE 8000/tcp
 
+env PATH /xmicro/app:$PATH
+
 # run
-CMD ["/xmicro/app/xmicro"]
+CMD ["xmicro"]
