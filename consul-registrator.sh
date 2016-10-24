@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-hostIP="$(ifconfig eth0 | sed -En 's/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p')"
+hostIP="$(hostname -I|awk '{print $1}')"
 
 # consul server
 docker run -d \

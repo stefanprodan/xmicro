@@ -14,10 +14,11 @@ if [ ! "$(docker network ls --filter name=$network -q)" ];then
     docker network create $network
 fi
 
-hostIP="$(ifconfig eth0 | sed -En 's/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p')"
+hostIP="$(hostname -I|awk '{print $1}')"
 
 # start proxy
 docker run -d -p 8000:8000 \
+-h "${image}-proxy" \
 --name "${image}-proxy" \
 --network "$network" \
 --restart unless-stopped \
@@ -27,12 +28,13 @@ docker run -d -p 8000:8000 \
 -e SERVICE_CHECK_HTTP="/ping" \
 -e SERVICE_CHECK_INTERVAL="15s" \
 $image \
--env=DEBUG \
+xmicro -env=DEBUG \
 -port=8000 \
 -role=proxy 
 
 # start frontend
 docker run -d -p 8010:8000 \
+-h "${image}-frontend" \
 --name "${image}-frontend" \
 --network "$network" \
 --restart unless-stopped \
@@ -42,12 +44,13 @@ docker run -d -p 8010:8000 \
 -e SERVICE_CHECK_HTTP="/ping" \
 -e SERVICE_CHECK_INTERVAL="15s" \
 $image \
--env=DEBUG \
+xmicro -env=DEBUG \
 -port=8000 \
 -role=frontend 
 
 # start backend
 docker run -d -p 8020:8000 \
+-h "${image}-backend" \
 --name "${image}-backend" \
 --network "$network" \
 --restart unless-stopped \
@@ -57,12 +60,13 @@ docker run -d -p 8020:8000 \
 -e SERVICE_CHECK_HTTP="/ping" \
 -e SERVICE_CHECK_INTERVAL="15s" \
 $image \
--env=DEBUG \
+xmicro -env=DEBUG \
 -port=8000 \
 -role=backend 
 
 # start storage
 docker run -d -p 8030:8000 \
+-h "${image}-storage" \
 --name "${image}-storage" \
 --network "$network" \
 --restart unless-stopped \
@@ -72,6 +76,6 @@ docker run -d -p 8030:8000 \
 -e SERVICE_CHECK_HTTP="/ping" \
 -e SERVICE_CHECK_INTERVAL="15s" \
 $image \
--env=DEBUG \
+xmicro -env=DEBUG \
 -port=8000 \
 -role=storage 
