@@ -7,7 +7,7 @@ import (
 	consul "github.com/hashicorp/consul/api"
 )
 
-const ElectionKey = "xmicro/election"
+var electionKey = "xmicro/election/"
 
 type Election struct {
 	isLeader   bool
@@ -16,7 +16,7 @@ type Election struct {
 	lockChan   chan struct{}
 }
 
-func (e *Election) Start() {
+func (e *Election) start() {
 	stop := false
 	for !stop {
 		select {
@@ -48,6 +48,7 @@ func (e *Election) Start() {
 	}
 }
 
+//Stop ends the election routine and releases the lock
 func (e *Election) Stop() {
 	e.stopChan <- struct{}{}
 	e.lockChan <- struct{}{}
@@ -55,13 +56,15 @@ func (e *Election) Stop() {
 	e.isLeader = false
 }
 
-func BeginElection(name string) *Election {
+//BeginElection starts a leader election on a go routine
+func BeginElection(serviceName string, serviceRole string) *Election {
+	electionKey = electionKey + serviceRole
 	config := consul.DefaultConfig()
 	client, _ := consul.NewClient(config)
 	opts := &consul.LockOptions{
-		Key: ElectionKey,
+		Key: electionKey,
 		SessionOpts: &consul.SessionEntry{
-			Name:      name,
+			Name:      serviceName,
 			LockDelay: time.Duration(5 * time.Second),
 			TTL:       "10s",
 		},
@@ -72,17 +75,18 @@ func BeginElection(name string) *Election {
 		stopChan:   make(chan struct{}, 1),
 		lockChan:   make(chan struct{}, 1),
 	}
-	go election.Start()
+	go election.start()
 	return election
 }
 
+//GetLeader returns leader name from Consul session
 func GetLeader() string {
 	config := consul.DefaultConfig()
 	client, err := consul.NewClient(config)
 	if err != nil {
 		return ""
 	}
-	kvpair, _, err := client.KV().Get(ElectionKey, nil)
+	kvpair, _, err := client.KV().Get(electionKey, nil)
 	if kvpair != nil && err == nil {
 		sessionInfo, _, err := client.Session().Info(kvpair.Session, nil)
 		if err == nil {
@@ -92,14 +96,17 @@ func GetLeader() string {
 	return ""
 }
 
+//IsLeaderElected returns true if a leader has been elected
 func IsLeaderElected() bool {
 	return GetLeader() != ""
 }
 
+//Leader returns leader's name
 func (e *Election) Leader() string {
 	return GetLeader()
 }
 
+//IsLeader returns true if the current instance is acting as leader
 func (e *Election) IsLeader() bool {
 	return e.isLeader
 }

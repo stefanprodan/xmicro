@@ -28,14 +28,15 @@ func main() {
 		workDir, _ = os.Getwd()
 	)
 
-	election := xconsul.BeginElection(host)
+	election := xconsul.BeginElection(host, "leader")
 
 	log.Println("Starting xmicro " + host + " role " + *role + " on port " + fmt.Sprintf("%v", *port) + " in " + *env + " mode. Work dir " + workDir)
 
-	go StartApi(fmt.Sprintf(":%v", *port), election)
+	go StartAPI(fmt.Sprintf(":%v", *port), election)
 
 	// block
 	osChan := make(chan os.Signal, 1)
+	// trigger with docker kill --signal=SIGINT
 	signal.Notify(osChan, os.Interrupt, os.Kill)
 	osSignal := <-osChan
 	stop(election)

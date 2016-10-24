@@ -9,18 +9,10 @@ import (
 	"github.com/stefanprodan/xmicro/xconsul"
 )
 
-func pingResponse(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("pong"))
-}
+var electionContextKey = "election"
 
-func statusResponse(w http.ResponseWriter, r *http.Request) {
-	election := r.Context().Value(ElectionContextKey).(*xconsul.Election)
-	status := fmt.Sprintf("Leader name is %s. Leader %v", election.Leader(), election.IsLeader())
-	w.Write([]byte(status))
-}
-
-func StartApi(address string, election *xconsul.Election) {
-
+// StartAPI starts the API HTTP servers
+func StartAPI(address string, election *xconsul.Election) {
 	electionStatusHandler := ElectionMiddleware(election, http.HandlerFunc(statusResponse))
 	pingHandler := ElectionMiddleware(election, http.HandlerFunc(pingResponse))
 
@@ -34,11 +26,25 @@ func StartApi(address string, election *xconsul.Election) {
 	}
 }
 
-const ElectionContextKey = "election"
-
+//ElectionMiddleware injects the election pointer
 func ElectionMiddleware(election *xconsul.Election, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), ElectionContextKey, election)
+		ctx := context.WithValue(r.Context(), electionContextKey, election)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func pingResponse(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("pong"))
+}
+
+func statusResponse(w http.ResponseWriter, r *http.Request) {
+	election := r.Context().Value(electionContextKey).(*xconsul.Election)
+	status := ""
+	if election.Leader() == "" {
+		status = "Leader election in process"
+	} else {
+		status = fmt.Sprintf("Leader name is %s. Leader %v", election.Leader(), election.IsLeader())
+	}
+	w.Write([]byte(status))
 }
