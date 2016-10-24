@@ -28,7 +28,7 @@ func main() {
 		workDir, _ = os.Getwd()
 	)
 
-	election := xconsul.BeginElection(host, "leader")
+	election := xconsul.BeginElection(host, *role)
 
 	log.Println("Starting xmicro " + host + " role " + *role + " on port " + fmt.Sprintf("%v", *port) + " in " + *env + " mode. Work dir " + workDir)
 
