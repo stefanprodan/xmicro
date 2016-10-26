@@ -3,7 +3,6 @@ set -e
 
 image="xmicro"
 network="xmicro"
-node="xmicro"
 
 # build image
 if [ ! "$(docker images -q  $image)" ];then
@@ -18,7 +17,7 @@ fi
 hostIP="$(hostname -I|awk '{print $1}')"
 
 # start node1
-$node="${image}-node1"
+node="${image}-node1"
 docker run -d -p 8001:8000 \
 -h "$node" \
 --name "$node" \
@@ -35,7 +34,7 @@ xmicro -env=DEBUG \
 -role=shard1 
 
 # start node2
-$node="${image}-node2"
+node="${image}-node2"
 docker run -d -p 8002:8000 \
 -h "$node" \
 --name "$node" \
@@ -52,7 +51,7 @@ xmicro -env=DEBUG \
 -role=shard2 
 
 # start node3
-$node="${image}-node1-replica"
+node="${image}-node1-replica"
 docker run -d -p 8003:8000 \
 -h "$node" \
 --name "$node" \
@@ -69,7 +68,7 @@ xmicro -env=DEBUG \
 -role=shard1 
 
 # start node4
-$node="${image}-node2-replica"
+node="${image}-node2-replica"
 docker run -d -p 8004:8000 \
 -h "$node" \
 --name "$node" \
