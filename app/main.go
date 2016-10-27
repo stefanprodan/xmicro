@@ -31,7 +31,7 @@ func main() {
 	)
 
 	if *role != "proxy" {
-		election = xconsul.BeginElection(host, electionKey+"/"+*role)
+		election = xconsul.BeginElection(host, electionKey+*role)
 		go StartAPI(fmt.Sprintf(":%v", *port), election)
 	} else {
 		client, _ := xconsul.NewClient()
