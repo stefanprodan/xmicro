@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -11,14 +10,17 @@ import (
 //StartProxy starts the HTTP Reverse Proxy server backed by Consul
 func StartProxy(address string, proxy *xproxy.ReverseProxy) {
 
-	log.Fatal(proxy.StartConsulSync())
+	err := proxy.StartConsulSync()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 
 	http.HandleFunc("/", proxy.HandlerFunc())
-	http.HandleFunc("/health", func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(w, "%v\n", proxy.ServiceRegistry)
+	http.HandleFunc("/registry", func(w http.ResponseWriter, req *http.Request) {
+		render.JSON(w, http.StatusOK, proxy.ServiceRegistry)
 	})
 	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte("pong"))
+		render.Text(w, http.StatusOK, "pong")
 	})
 
 	log.Printf("Proxy started on %s", address)

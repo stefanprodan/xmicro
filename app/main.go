@@ -40,6 +40,7 @@ func main() {
 	)
 
 	log.Println("Starting xmicro " + host + " role " + *role + " on port " + fmt.Sprintf("%v", *port) + " in " + *env + " mode. Work dir " + workDir)
+	initGlobals()
 
 	if *role == "proxy" {
 		go StartProxy(fmt.Sprintf(":%v", *port), proxy)

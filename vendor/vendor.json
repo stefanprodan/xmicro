@@ -25,6 +25,12 @@
 			"path": "github.com/hashicorp/serf/coordinate",
 			"revision": "1d4fa605f6ff3ed628d7ae5eda7c0e56803e72a5",
 			"revisionTime": "2016-10-07T00:41:22Z"
+		},
+		{
+			"checksumSHA1": "UhwJY3Oqer9FbsV5LqRfasTqUSo=",
+			"path": "github.com/unrolled/render",
+			"revision": "526faf80cd4b305bb8134abea8d20d5ced74faa6",
+			"revisionTime": "2016-10-03T17:53:27Z"
 		}
 	],
 	"rootPath": "github.com/stefanprodan/xmicro"
