@@ -1,6 +1,7 @@
 package xconsul
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -76,14 +77,45 @@ func GetLeaderServices(c *consul.Client, electionKeyPrefix string) (map[string][
 		for _, s := range r {
 			//detect if service is subject to leader election
 			if len(s.Service.Tags) == 2 && s.Service.Tags[0] == "le" {
-
+				var electionKey = electionKeyPrefix + s.Service.Tags[1]
+				kvpair, _, err := c.KV().Get(electionKey, nil)
+				if kvpair != nil && err == nil {
+					//check if a session is locking the key
+					sessionInfo, _, err := c.Session().Info(kvpair.Session, nil)
+					if err == nil && sessionInfo != nil {
+						//extract leader name from session name and validate
+						_, present := registry[s.Service.Tags[1]]
+						if !present && service == sessionInfo.Name {
+							//add service to registry using the tag only if the current service is the leader
+							registry[s.Service.Tags[1]] = append(registry[s.Service.Tags[1]], fmt.Sprintf("%s:%v", s.Service.Address, s.Service.Port))
+						}
+					} else {
+						return registry, err
+					}
+				}
 			} else {
 				registry[service] = append(registry[service], fmt.Sprintf("%s:%v", s.Service.Address, s.Service.Port))
 			}
-
 		}
 	}
 	return registry, nil
+}
+
+func StartElectionWatcher(keyPrefix string) error {
+	wt, err := watch.Parse(map[string]interface{}{"type": "keyprefix", "prefix": keyPrefix})
+	if err != nil {
+		return err
+	}
+	wt.Handler = handleLeaderChanges
+	config := consul.DefaultConfig()
+	go wt.Run(config.Address)
+	return nil
+}
+
+func handleLeaderChanges(idx uint64, data interface{}) {
+	log.Print("Leader change detected")
+	buf, _ := json.MarshalIndent(data, "", "    ")
+	log.Print(string(buf))
 }
 
 func StartServicesWatcher() error {

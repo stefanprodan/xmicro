@@ -44,7 +44,7 @@ func loadBalance(network, service string, reg Registry) (net.Conn, error) {
 	return nil, fmt.Errorf("no endpoint found in registry for %s", service)
 }
 
-func extractNameVersion(target *url.URL) (name string, err error) {
+func parseServiceName(target *url.URL) (name string, err error) {
 	path := target.Path
 	if len(path) > 1 && path[0] == '/' {
 		path = path[1:]
@@ -59,26 +59,8 @@ func extractNameVersion(target *url.URL) (name string, err error) {
 }
 
 func NewReverseProxy(reg Registry, scheme string) http.HandlerFunc {
-	//set http as default scheme
-	if scheme == "" {
-		scheme = "http"
-	}
-	transport := &http.Transport{
-		MaxIdleConnsPerHost:   50,
-		ResponseHeaderTimeout: 10 * time.Second,
-		Proxy: http.ProxyFromEnvironment,
-		Dial: func(network, addr string) (net.Conn, error) {
-			addr = strings.Split(addr, ":")[0]
-			tmp := strings.Split(addr, "/")
-			if len(tmp) != 1 {
-				return nil, errors.New("invalid service for " + addr)
-			}
-			return loadBalance(network, tmp[0], reg)
-		},
-		TLSHandshakeTimeout: 10 * time.Second,
-	}
 	return func(w http.ResponseWriter, req *http.Request) {
-		name, err := extractNameVersion(req.URL)
+		name, err := parseServiceName(req.URL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -88,7 +70,20 @@ func NewReverseProxy(reg Registry, scheme string) http.HandlerFunc {
 				req.URL.Scheme = scheme
 				req.URL.Host = name
 			},
-			Transport:     transport,
+			Transport: &http.Transport{
+				MaxIdleConnsPerHost:   10,
+				ResponseHeaderTimeout: 10 * time.Second,
+				Proxy: http.ProxyFromEnvironment,
+				Dial: func(network, addr string) (net.Conn, error) {
+					addr = strings.Split(addr, ":")[0]
+					tmp := strings.Split(addr, "/")
+					if len(tmp) != 1 {
+						return nil, errors.New("invalid service for " + addr)
+					}
+					return loadBalance(network, tmp[0], reg)
+				},
+				TLSHandshakeTimeout: 10 * time.Second,
+			},
 			FlushInterval: 2 * time.Second,
 		}
 
