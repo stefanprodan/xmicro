@@ -92,7 +92,7 @@ func NewReverseProxy2(reg Registry, scheme string) http.HandlerFunc {
 	}
 }
 
-func NewReverseProxy(reg Registry, scheme string) http.HandlerFunc {
+func NewReverseProxy1(reg Registry, scheme string) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		name, err := parseServiceName(req.URL)
 		if err != nil {
@@ -119,6 +119,50 @@ func NewReverseProxy(reg Registry, scheme string) http.HandlerFunc {
 				TLSHandshakeTimeout: 10 * time.Second,
 			},
 			FlushInterval: 2 * time.Second,
+		}
+
+		reverseProxy.ServeHTTP(w, req)
+	}
+}
+
+func NewMultipleHostReverseProxy(reg Registry, scheme string) *httputil.ReverseProxy {
+	director := func(req *http.Request) {
+		name, err := parseServiceName(req.URL)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		endpoints := reg[name]
+		if len(endpoints) == 0 {
+			log.Printf("Service not found ")
+			return
+		}
+		req.URL.Scheme = scheme
+		req.URL.Host = endpoints[rand.Int()%len(endpoints)]
+	}
+	return &httputil.ReverseProxy{
+		Director: director,
+	}
+}
+
+func NewReverseProxy(reg Registry, scheme string) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		name, err := parseServiceName(req.URL)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		endpoints := reg[name]
+		if len(endpoints) == 0 {
+			log.Printf("Service not found " + name)
+			return
+		}
+
+		reverseProxy := &httputil.ReverseProxy{
+			Director: func(req *http.Request) {
+				req.URL.Scheme = scheme
+				req.URL.Host = endpoints[0]
+			},
 		}
 
 		reverseProxy.ServeHTTP(w, req)

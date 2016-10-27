@@ -25,6 +25,7 @@ func StartProxy(address string, keyPrefix string) {
 	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte("pong"))
 	})
+
 	log.Printf("Proxy started on %s", address)
 	log.Fatal(http.ListenAndServe(address, nil))
 }
