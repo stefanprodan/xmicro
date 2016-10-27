@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/stefanprodan/xmicro/proxy"
+	"github.com/stefanprodan/xmicro/xconsul"
 )
 
 var ServiceRegistry = proxy.Registry{
@@ -21,6 +22,9 @@ var ServiceRegistry = proxy.Registry{
 
 //StartProxy starts the HTTP Reverse Proxy server
 func StartProxy(address string) {
+
+	client, _ := xconsul.NewClient()
+	ServiceRegistry, _ = xconsul.GetServices(client)
 	http.HandleFunc("/", proxy.NewReverseProxy(ServiceRegistry, "http"))
 	http.HandleFunc("/health", func(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprintf(w, "%v\n", ServiceRegistry)

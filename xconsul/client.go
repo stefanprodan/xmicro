@@ -1,6 +1,7 @@
 package xconsul
 
 import (
+	"fmt"
 	"log"
 
 	consul "github.com/hashicorp/consul/api"
@@ -35,6 +36,27 @@ func ListServices(c *consul.Client) error {
 		}
 	}
 	return nil
+}
+
+func GetServices(c *consul.Client) (map[string][]string, error) {
+
+	registry := make(map[string][]string)
+
+	services, _, err := c.Catalog().Services(nil)
+	if err != nil {
+		return registry, err
+	}
+	for service, _ := range services {
+		r, _, err := c.Health().Service(service, "", false, nil)
+		if err != nil {
+			return registry, err
+		}
+
+		for _, s := range r {
+			registry[service] = append(registry[service], fmt.Sprintf("%s:%v", s.Service.Address, s.Service.Port))
+		}
+	}
+	return registry, nil
 }
 
 func StartServicesWatcher() error {

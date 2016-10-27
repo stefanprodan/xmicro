@@ -24,7 +24,7 @@ func main() {
 	flag.Parse()
 
 	var (
-		host       = genServiceName()
+		host, _    = os.Hostname()
 		workDir, _ = os.Getwd()
 		election   = &xconsul.Election{}
 	)
