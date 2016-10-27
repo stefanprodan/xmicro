@@ -5,11 +5,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/stefanprodan/xmicro/proxy"
 	"github.com/stefanprodan/xmicro/xconsul"
+	"github.com/stefanprodan/xmicro/xproxy"
 )
 
-var ServiceRegistry = proxy.Registry{
+var ServiceRegistry = xproxy.Registry{
 	"xmicro-node1": {
 		"192.168.1.134:8001",
 		//"192.168.1.134:8003",
@@ -25,7 +25,7 @@ func StartProxy(address string) {
 
 	client, _ := xconsul.NewClient()
 	ServiceRegistry, _ = xconsul.GetServices(client)
-	http.HandleFunc("/", proxy.NewReverseProxy(ServiceRegistry, "http"))
+	http.HandleFunc("/", xproxy.NewReverseProxy(ServiceRegistry, "http"))
 	http.HandleFunc("/health", func(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprintf(w, "%v\n", ServiceRegistry)
 	})

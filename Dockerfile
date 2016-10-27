@@ -6,6 +6,7 @@ RUN apk add --update curl && rm -rf /var/cache/apk/*
 # copy deps
 ADD vendor /go/src/
 ADD xconsul /go/src/github.com/stefanprodan/xmicro/xconsul
+ADD xproxy /go/src/github.com/stefanprodan/xmicro/xproxy
 
 # copy sources
 RUN mkdir /xmicro 
