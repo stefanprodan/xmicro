@@ -20,26 +20,34 @@ func main() {
 
 	port := flag.Int("port", 8000, "HTTP port")
 	env := flag.String("env", "DEBUG", "ENV: DEBUG, DEV, STG, PROD")
-	role := flag.String("role", "frontend", "Roles: proxy, frontend, backend, storage")
+	role := flag.String("role", "proxy", "Roles: proxy, frontend, backend, storage")
 	flag.Parse()
 
 	var (
 		host       = genServiceName()
 		workDir, _ = os.Getwd()
+		election   = &xconsul.Election{}
 	)
 
-	election := xconsul.BeginElection(host, *role)
+	if *role != "proxy" {
+		election = xconsul.BeginElection(host, *role)
+		go StartAPI(fmt.Sprintf(":%v", *port), election)
+	} else {
+		client, _ := xconsul.NewClient()
+		xconsul.ListServices(client)
+	}
 
 	log.Println("Starting xmicro " + host + " role " + *role + " on port " + fmt.Sprintf("%v", *port) + " in " + *env + " mode. Work dir " + workDir)
-
-	go StartAPI(fmt.Sprintf(":%v", *port), election)
 
 	// block
 	osChan := make(chan os.Signal, 1)
 	// trigger with docker kill --signal=SIGINT
 	signal.Notify(osChan, os.Interrupt, os.Kill)
 	osSignal := <-osChan
-	stop(election)
+
+	if *role != "proxy" {
+		stop(election)
+	}
 
 	log.Printf("Exiting! OS signal: %v", osSignal)
 }
