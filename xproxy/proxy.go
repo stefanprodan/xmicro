@@ -146,27 +146,34 @@ func NewMultipleHostReverseProxy(reg Registry, scheme string) *httputil.ReverseP
 }
 
 func NewReverseProxy(reg Registry, scheme string) http.HandlerFunc {
+	transport := &http.Transport{
+		DisableKeepAlives:   true,
+		MaxIdleConnsPerHost: 500,
+	}
 	return func(w http.ResponseWriter, req *http.Request) {
 		name, err := parseServiceName(req.URL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		endpoints := reg[name]
+
+		//seach ip:port entry
+		endpoints, _ := reg.Lookup(name)
+
 		if len(endpoints) == 0 {
 			log.Printf("Service not found " + name)
 			return
 		}
 
+		//random load balancer
+		endpoint := endpoints[rand.Int()%len(endpoints)]
+
 		reverseProxy := &httputil.ReverseProxy{
 			Director: func(req *http.Request) {
 				req.URL.Scheme = scheme
-				req.URL.Host = endpoints[0]
+				req.URL.Host = endpoint
 			},
-			Transport: &http.Transport{
-				//DisableKeepAlives:   true,
-				MaxIdleConnsPerHost: 100,
-			},
+			Transport: transport,
 		}
 
 		reverseProxy.ServeHTTP(w, req)
