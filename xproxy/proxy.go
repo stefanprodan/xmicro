@@ -8,12 +8,33 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+
+	consul "github.com/hashicorp/consul/api"
+	watch "github.com/hashicorp/consul/watch"
 )
 
-// NewReverseProxy creates a reverse proxy handler that will resolve
-// services from Consul. If a service has the cl tag, the proxy will point to the leader.
+type ReverseProxy struct {
+	ServiceRegistry     Registry
+	ElectionKeyPrefix   string
+	Scheme              string
+	MaxIdleConnsPerHost int
+	DisableKeepAlives   bool
+}
+
+// StartConsulSync watches for changes in Consul Registry and syncs with the in memory registry
+func (r *ReverseProxy) StartConsulSync() error {
+	r.ServiceRegistry.GetServices(r.ElectionKeyPrefix)
+	err := r.startConsulWatchers()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// HandlerFunc creates a http handler that will resolve services from Consul.
+// If a service has the cl tag, the proxy will point to the leader.
 // If multiple addreses are found for a service then it will load balance between those instaces.
-func NewReverseProxy(reg Registry, scheme string) http.HandlerFunc {
+func (r *ReverseProxy) HandlerFunc() http.HandlerFunc {
 	transport := &http.Transport{
 		DisableKeepAlives:   true,
 		MaxIdleConnsPerHost: 500,
@@ -26,7 +47,7 @@ func NewReverseProxy(reg Registry, scheme string) http.HandlerFunc {
 		}
 
 		//resolve service name address
-		endpoints, _ := reg.Lookup(name)
+		endpoints, _ := r.ServiceRegistry.Lookup(name)
 
 		if len(endpoints) == 0 {
 			log.Printf("xproxy: service not found in registry " + name)
@@ -39,7 +60,7 @@ func NewReverseProxy(reg Registry, scheme string) http.HandlerFunc {
 
 		reverseProxy := &httputil.ReverseProxy{
 			Director: func(req *http.Request) {
-				req.URL.Scheme = scheme
+				req.URL.Scheme = r.Scheme
 				req.URL.Host = endpoint
 			},
 			Transport: transport,
@@ -62,4 +83,35 @@ func parseServiceName(target *url.URL) (name string, err error) {
 	name = tmp[0]
 	target.Path = "/" + strings.Join(tmp[1:], "/")
 	return name, nil
+}
+
+//watch for services status changes (up/down or leadership changes)
+func (r *ReverseProxy) startConsulWatchers() error {
+	serviceWatch, err := watch.Parse(map[string]interface{}{"type": "services"})
+	if err != nil {
+		return err
+	}
+	serviceWatch.Handler = r.handleServiceChanges
+	config := consul.DefaultConfig()
+	go serviceWatch.Run(config.Address)
+
+	leaderWatch, err := watch.Parse(map[string]interface{}{"type": "keyprefix", "prefix": r.ElectionKeyPrefix})
+	if err != nil {
+		return err
+	}
+	leaderWatch.Handler = r.handleLeaderChanges
+	go leaderWatch.Run(config.Address)
+	return nil
+}
+
+//reload services from Consul
+func (r *ReverseProxy) handleServiceChanges(idx uint64, data interface{}) {
+	log.Print("Service change detected")
+	r.ServiceRegistry.GetServices(r.ElectionKeyPrefix)
+}
+
+//reload leaders from Consul
+func (r *ReverseProxy) handleLeaderChanges(idx uint64, data interface{}) {
+	log.Print("Leader change detected")
+	r.ServiceRegistry.GetServices(r.ElectionKeyPrefix)
 }
