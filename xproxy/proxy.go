@@ -19,6 +19,8 @@ type ReverseProxy struct {
 	Scheme              string
 	MaxIdleConnsPerHost int
 	DisableKeepAlives   bool
+	serviceWatch        *watch.WatchPlan
+	leaderWatch         *watch.WatchPlan
 }
 
 // StartConsulSync watches for changes in Consul Registry and syncs with the in memory registry
@@ -91,6 +93,7 @@ func (r *ReverseProxy) startConsulWatchers() error {
 	if err != nil {
 		return err
 	}
+	r.serviceWatch = serviceWatch
 	serviceWatch.Handler = r.handleServiceChanges
 	config := consul.DefaultConfig()
 	go serviceWatch.Run(config.Address)
@@ -99,6 +102,7 @@ func (r *ReverseProxy) startConsulWatchers() error {
 	if err != nil {
 		return err
 	}
+	r.leaderWatch = leaderWatch
 	leaderWatch.Handler = r.handleLeaderChanges
 	go leaderWatch.Run(config.Address)
 	return nil
@@ -114,4 +118,9 @@ func (r *ReverseProxy) handleServiceChanges(idx uint64, data interface{}) {
 func (r *ReverseProxy) handleLeaderChanges(idx uint64, data interface{}) {
 	log.Print("Leader change detected")
 	r.ServiceRegistry.GetServices(r.ElectionKeyPrefix)
+}
+
+func (r *ReverseProxy) Stop() {
+	r.serviceWatch.Stop()
+	r.leaderWatch.Stop()
 }

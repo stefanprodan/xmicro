@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/stefanprodan/xmicro/xconsul"
+	"github.com/stefanprodan/xmicro/xproxy"
 )
 
 type stoppableService interface {
@@ -25,30 +26,38 @@ func main() {
 	flag.Parse()
 
 	var (
+		electionKeyPrefix = "xmicro/election/"
 		host, _           = os.Hostname()
 		workDir, _        = os.Getwd()
 		election          = &xconsul.Election{}
-		electionKeyPrefix = "xmicro/election/"
+		proxy             = &xproxy.ReverseProxy{
+			ServiceRegistry:     xproxy.Registry{},
+			ElectionKeyPrefix:   electionKeyPrefix,
+			Scheme:              "http",
+			MaxIdleConnsPerHost: 500,
+			DisableKeepAlives:   true,
+		}
 	)
-
-	if *role != "proxy" {
-		election = xconsul.BeginElection(host, electionKeyPrefix+*role)
-		go StartAPI(fmt.Sprintf(":%v", *port), election)
-	} else {
-		client, _ := xconsul.NewClient()
-		xconsul.ListServices(client)
-		go StartProxy(fmt.Sprintf(":%v", *port), electionKeyPrefix)
-	}
 
 	log.Println("Starting xmicro " + host + " role " + *role + " on port " + fmt.Sprintf("%v", *port) + " in " + *env + " mode. Work dir " + workDir)
 
-	// block
+	if *role == "proxy" {
+		go StartProxy(fmt.Sprintf(":%v", *port), proxy)
+
+	} else {
+		election = xconsul.BeginElection(host, electionKeyPrefix+*role)
+		go StartAPI(fmt.Sprintf(":%v", *port), election)
+	}
+
+	// wait for OS signal
 	osChan := make(chan os.Signal)
-	// trigger with docker kill --signal=SIGINT
 	signal.Notify(osChan, syscall.SIGINT, syscall.SIGTERM)
 	osSignal := <-osChan
 
-	if *role != "proxy" {
+	// stop services
+	if *role == "proxy" {
+		stop(proxy)
+	} else {
 		stop(election)
 	}
 

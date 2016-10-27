@@ -9,15 +9,7 @@ import (
 )
 
 //StartProxy starts the HTTP Reverse Proxy server backed by Consul
-func StartProxy(address string, keyPrefix string) {
-
-	proxy := &xproxy.ReverseProxy{
-		ServiceRegistry:     xproxy.Registry{},
-		ElectionKeyPrefix:   keyPrefix,
-		Scheme:              "http",
-		MaxIdleConnsPerHost: 500,
-		DisableKeepAlives:   true,
-	}
+func StartProxy(address string, proxy *xproxy.ReverseProxy) {
 
 	log.Fatal(proxy.StartConsulSync())
 
