@@ -15,7 +15,7 @@ const electionContextKey = "election"
 func StartAPI(address string, election *xconsul.Election) {
 
 	electionStatusHandler := HeadersMiddleware(ElectionMiddleware(election, http.HandlerFunc(statusResponse)))
-	pingHandler := HeadersMiddleware(ElectionMiddleware(election, http.HandlerFunc(pingResponse)))
+	pingHandler := HeadersMiddleware(http.HandlerFunc(pingResponse))
 	healthHandler := HeadersMiddleware(http.HandlerFunc(healthResponse))
 
 	mux := new(http.ServeMux)
