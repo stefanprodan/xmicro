@@ -10,8 +10,10 @@ import (
 
 var lock sync.RWMutex
 
+// Registry in memory map of elected leaders and services
 type Registry map[string][]string
 
+// Lookup seaches in registry for a service and returns all endpoints
 func (reg Registry) Lookup(service string) ([]string, error) {
 	lock.RLock()
 	targets, ok := reg[service]
@@ -22,6 +24,7 @@ func (reg Registry) Lookup(service string) ([]string, error) {
 	return targets, nil
 }
 
+// GetServices gets elected leaders snd services to be balanced from Consul
 func (reg Registry) GetServices(electionKeyPrefix string) error {
 
 	registry := make(map[string][]string)
@@ -37,14 +40,16 @@ func (reg Registry) GetServices(electionKeyPrefix string) error {
 		return err
 	}
 	for service, _ := range services {
-		r, _, err := c.Health().Service(service, "", false, nil)
+		//TODO: get only healthy services (the 15s health check startup deplay could be a problem)
+		services, _, err := c.Health().Service(service, "", false, nil)
 		if err != nil {
 			return err
 		}
 
-		for _, s := range r {
+		for _, s := range services {
 			//detect if service is subject to leader election
 			if len(s.Service.Tags) == 2 && s.Service.Tags[0] == "le" {
+				//compose election key using the second tag
 				var electionKey = electionKeyPrefix + s.Service.Tags[1]
 				kvpair, _, err := c.KV().Get(electionKey, nil)
 				if kvpair != nil && err == nil {
@@ -62,16 +67,17 @@ func (reg Registry) GetServices(electionKeyPrefix string) error {
 					}
 				}
 			} else {
+				// add service for load balancing
 				registry[service] = append(registry[service], fmt.Sprintf("%s:%v", s.Service.Address, s.Service.Port))
 			}
 		}
 	}
 
+	//lock and copy services
 	lock.Lock()
 	for k, v := range registry {
 		reg[k] = v
 	}
-
 	lock.Unlock()
 
 	return nil

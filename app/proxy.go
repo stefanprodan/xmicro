@@ -30,6 +30,7 @@ func StartProxy(address string, keyPrefix string) {
 	log.Fatal(http.ListenAndServe(address, nil))
 }
 
+//watch for services status changes (up/down or leadership changes)
 func startConsulWatchers(keyPrefix string) error {
 	serviceWatch, err := watch.Parse(map[string]interface{}{"type": "services"})
 	if err != nil {
@@ -48,6 +49,7 @@ func startConsulWatchers(keyPrefix string) error {
 	return nil
 }
 
+//reload services from Consul
 func handleChanges(idx uint64, data interface{}) {
 	log.Print("Leader change detected")
 	serviceRegistry.GetServices(electionKeyPrefix)
