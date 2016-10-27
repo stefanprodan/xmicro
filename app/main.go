@@ -35,6 +35,7 @@ func main() {
 	} else {
 		client, _ := xconsul.NewClient()
 		xconsul.ListServices(client)
+		go StartProxy(fmt.Sprintf(":%v", *port))
 	}
 
 	log.Println("Starting xmicro " + host + " role " + *role + " on port " + fmt.Sprintf("%v", *port) + " in " + *env + " mode. Work dir " + workDir)

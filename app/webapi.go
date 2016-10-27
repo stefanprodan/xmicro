@@ -11,7 +11,7 @@ import (
 
 var electionContextKey = "election"
 
-// StartAPI starts the API HTTP servers
+//StartAPI starts the HTTP API server
 func StartAPI(address string, election *xconsul.Election) {
 	electionStatusHandler := ElectionMiddleware(election, http.HandlerFunc(statusResponse))
 	pingHandler := ElectionMiddleware(election, http.HandlerFunc(pingResponse))

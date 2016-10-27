@@ -23,26 +23,25 @@ func loadBalance(network, service string, reg Registry) (net.Conn, error) {
 		return nil, err
 	}
 	for {
-		// No more endpoint, stop
+		//stop: no more endpoints
 		if len(endpoints) == 0 {
 			break
 		}
-		// Select a random endpoint
+		//select a random endpoint
 		i := rand.Int() % len(endpoints)
 		endpoint := endpoints[i]
 
-		// Try to connect
+		//try to connect
 		conn, err := dialer(network, endpoint)
 		if err != nil {
-			// Failure: remove the endpoint from the current list and try again.
+			//failure: remove the endpoint from the current list and try again
 			endpoints = append(endpoints[:i], endpoints[i+1:]...)
 			continue
 		}
-		// Success: return the connection.
+		//success: return the connection
 		return conn, nil
 	}
-	// No available endpoint.
-	return nil, fmt.Errorf("No endpoint available for %s", service)
+	return nil, fmt.Errorf("no endpoint found in registry for %s", service)
 }
 
 func extractNameVersion(target *url.URL) (name string, err error) {
@@ -52,14 +51,18 @@ func extractNameVersion(target *url.URL) (name string, err error) {
 	}
 	tmp := strings.Split(path, "/")
 	if len(tmp) < 1 {
-		return "", fmt.Errorf("Invalid path %s", path)
+		return "", fmt.Errorf("invalid path %s", path)
 	}
 	name = tmp[0]
 	target.Path = "/" + strings.Join(tmp[1:], "/")
 	return name, nil
 }
 
-func NewReverseProxy(reg Registry) http.HandlerFunc {
+func NewReverseProxy(reg Registry, scheme string) http.HandlerFunc {
+	//set http as default scheme
+	if scheme == "" {
+		scheme = "http"
+	}
 	transport := &http.Transport{
 		MaxIdleConnsPerHost:   50,
 		ResponseHeaderTimeout: 10 * time.Second,
@@ -81,15 +84,14 @@ func NewReverseProxy(reg Registry) http.HandlerFunc {
 			return
 		}
 		reverseProxy := &httputil.ReverseProxy{
-			Director: func(req1 *http.Request) {
-				req1.URL.Scheme = "http"
-				req1.URL.Host = name
+			Director: func(req *http.Request) {
+				req.URL.Scheme = scheme
+				req.URL.Host = name
 			},
 			Transport:     transport,
 			FlushInterval: 2 * time.Second,
 		}
 
 		reverseProxy.ServeHTTP(w, req)
-
 	}
 }
