@@ -27,8 +27,6 @@ func main() {
 
 	var (
 		electionKeyPrefix = "xmicro/election/"
-		host, _           = os.Hostname()
-		workDir, _        = os.Getwd()
 		election          = &xconsul.Election{}
 		proxy             = &xproxy.ReverseProxy{
 			ServiceRegistry:     xproxy.Registry{},
@@ -39,15 +37,19 @@ func main() {
 		}
 	)
 
-	log.Println("Starting xmicro " + host + " role " + *role + " on port " + fmt.Sprintf("%v", *port) + " in " + *env + " mode. Work dir " + workDir)
-	initGlobals()
+	err := initCtx(*env, *port, *role)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 
-	if *role == "proxy" {
-		go StartProxy(fmt.Sprintf(":%v", *port), proxy)
+	log.Println("Starting xmicro " + appCtx.Hostname + " role " + appCtx.Role + " on port " + fmt.Sprintf("%v", appCtx.Port) + " in " + appCtx.Env + " mode. Work dir " + appCtx.WorkDir)
+
+	if appCtx.Role == "proxy" {
+		go StartProxy(fmt.Sprintf(":%v", appCtx.Port), proxy)
 
 	} else {
-		election = xconsul.BeginElection(host, electionKeyPrefix+*role)
-		go StartAPI(fmt.Sprintf(":%v", *port), election)
+		election = xconsul.BeginElection(appCtx.Hostname, electionKeyPrefix+appCtx.Role)
+		go StartAPI(fmt.Sprintf(":%v", appCtx.Port), election)
 	}
 
 	// wait for OS signal
@@ -56,7 +58,7 @@ func main() {
 	osSignal := <-osChan
 
 	// stop services
-	if *role == "proxy" {
+	if appCtx.Role == "proxy" {
 		stop(proxy)
 	} else {
 		stop(election)

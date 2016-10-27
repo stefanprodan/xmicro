@@ -17,10 +17,13 @@ func StartProxy(address string, proxy *xproxy.ReverseProxy) {
 
 	http.HandleFunc("/", proxy.HandlerFunc())
 	http.HandleFunc("/registry", func(w http.ResponseWriter, req *http.Request) {
-		render.JSON(w, http.StatusOK, proxy.ServiceRegistry)
+		appCtx.Render.JSON(w, http.StatusOK, proxy.ServiceRegistry)
 	})
 	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) {
-		render.Text(w, http.StatusOK, "pong")
+		appCtx.Render.Text(w, http.StatusOK, "pong")
+	})
+	http.HandleFunc("/health", func(w http.ResponseWriter, req *http.Request) {
+		appCtx.Render.JSON(w, http.StatusOK, appCtx)
 	})
 
 	log.Printf("Proxy started on %s", address)
