@@ -3,6 +3,7 @@ package xproxy
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"net"
 	"net/http"
@@ -14,7 +15,7 @@ import (
 
 var dialer = (&net.Dialer{
 	Timeout:   2 * time.Second,
-	KeepAlive: 10 * time.Second,
+	KeepAlive: 0,
 }).Dial
 
 func loadBalance(network, service string, reg Registry) (net.Conn, error) {
@@ -34,6 +35,7 @@ func loadBalance(network, service string, reg Registry) (net.Conn, error) {
 		//try to connect
 		conn, err := dialer(network, endpoint)
 		if err != nil {
+			log.Print("dialer error " + err.Error())
 			//failure: remove the endpoint from the current list and try again
 			endpoints = append(endpoints[:i], endpoints[i+1:]...)
 			continue
@@ -58,6 +60,38 @@ func parseServiceName(target *url.URL) (name string, err error) {
 	return name, nil
 }
 
+func NewReverseProxy2(reg Registry, scheme string) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		name, err := parseServiceName(req.URL)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		reverseProxy := &httputil.ReverseProxy{
+			Director: func(req *http.Request) {
+				req.URL.Scheme = scheme
+				req.URL.Host = name
+			},
+			Transport: &http.Transport{
+				DisableKeepAlives:     true,
+				MaxIdleConnsPerHost:   10,
+				ResponseHeaderTimeout: 10 * time.Second,
+				Proxy: http.ProxyFromEnvironment,
+				Dial: func(network, addr string) (net.Conn, error) {
+					addr = strings.Split(addr, ":")[0]
+					tmp := strings.Split(addr, "/")
+					if len(tmp) != 1 {
+						return nil, errors.New("invalid service for " + addr)
+					}
+					return loadBalance(network, tmp[0], reg)
+				},
+			},
+		}
+
+		reverseProxy.ServeHTTP(w, req)
+	}
+}
+
 func NewReverseProxy(reg Registry, scheme string) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		name, err := parseServiceName(req.URL)
@@ -71,7 +105,7 @@ func NewReverseProxy(reg Registry, scheme string) http.HandlerFunc {
 				req.URL.Host = name
 			},
 			Transport: &http.Transport{
-				MaxIdleConnsPerHost:   10,
+				MaxIdleConnsPerHost:   1,
 				ResponseHeaderTimeout: 10 * time.Second,
 				Proxy: http.ProxyFromEnvironment,
 				Dial: func(network, addr string) (net.Conn, error) {
