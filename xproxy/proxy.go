@@ -163,6 +163,10 @@ func NewReverseProxy(reg Registry, scheme string) http.HandlerFunc {
 				req.URL.Scheme = scheme
 				req.URL.Host = endpoints[0]
 			},
+			Transport: &http.Transport{
+				DisableKeepAlives:   true,
+				MaxIdleConnsPerHost: 100,
+			},
 		}
 
 		reverseProxy.ServeHTTP(w, req)
