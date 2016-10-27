@@ -59,6 +59,33 @@ func GetServices(c *consul.Client) (map[string][]string, error) {
 	return registry, nil
 }
 
+func GetLeaderServices(c *consul.Client, electionKeyPrefix string) (map[string][]string, error) {
+
+	registry := make(map[string][]string)
+
+	services, _, err := c.Catalog().Services(nil)
+	if err != nil {
+		return registry, err
+	}
+	for service, _ := range services {
+		r, _, err := c.Health().Service(service, "", false, nil)
+		if err != nil {
+			return registry, err
+		}
+
+		for _, s := range r {
+			//detect if service is subject to leader election
+			if len(s.Service.Tags) == 2 && s.Service.Tags[0] == "le" {
+
+			} else {
+				registry[service] = append(registry[service], fmt.Sprintf("%s:%v", s.Service.Address, s.Service.Port))
+			}
+
+		}
+	}
+	return registry, nil
+}
+
 func StartServicesWatcher() error {
 	wt, err := watch.Parse(map[string]interface{}{"type": "services"})
 	if err != nil {

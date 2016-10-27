@@ -26,7 +26,7 @@ docker run -d -p 8001:8000 \
 --restart unless-stopped \
 -e CONSUL_HTTP_ADDR="${hostIP}:8500" \
 -e SERVICE_NAME="$node" \
--e SERVICE_TAGS="$role" \
+-e SERVICE_TAGS="le,$role" \
 -e SERVICE_CHECK_HTTP="/ping" \
 -e SERVICE_CHECK_INTERVAL="15s" \
 $image \
@@ -44,7 +44,7 @@ docker run -d -p 8002:8000 \
 --restart unless-stopped \
 -e CONSUL_HTTP_ADDR="${hostIP}:8500" \
 -e SERVICE_NAME="$node" \
--e SERVICE_TAGS="$role" \
+-e SERVICE_TAGS="le,$role" \
 -e SERVICE_CHECK_HTTP="/ping" \
 -e SERVICE_CHECK_INTERVAL="15s" \
 $image \
@@ -62,7 +62,7 @@ docker run -d -p 8003:8000 \
 --restart unless-stopped \
 -e CONSUL_HTTP_ADDR="${hostIP}:8500" \
 -e SERVICE_NAME="$node" \
--e SERVICE_TAGS="$role" \
+-e SERVICE_TAGS="le,$role" \
 -e SERVICE_CHECK_HTTP="/ping" \
 -e SERVICE_CHECK_INTERVAL="15s" \
 $image \
@@ -80,7 +80,7 @@ docker run -d -p 8004:8000 \
 --restart unless-stopped \
 -e CONSUL_HTTP_ADDR="${hostIP}:8500" \
 -e SERVICE_NAME="$node" \
--e SERVICE_TAGS="$role" \
+-e SERVICE_TAGS="le,$role" \
 -e SERVICE_CHECK_HTTP="/ping" \
 -e SERVICE_CHECK_INTERVAL="15s" \
 $image \

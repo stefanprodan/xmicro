@@ -7,7 +7,7 @@ import (
 	consul "github.com/hashicorp/consul/api"
 )
 
-var electionKey = "xmicro/election/"
+var electionKey = ""
 
 type Election struct {
 	isLeader   bool
@@ -57,8 +57,8 @@ func (e *Election) Stop() {
 }
 
 //BeginElection starts a leader election on a go routine
-func BeginElection(serviceName string, serviceRole string) *Election {
-	electionKey = electionKey + serviceRole
+func BeginElection(serviceName string, key string) *Election {
+	electionKey = key
 	config := consul.DefaultConfig()
 	client, _ := consul.NewClient(config)
 	opts := &consul.LockOptions{

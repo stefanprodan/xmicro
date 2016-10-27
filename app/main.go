@@ -24,13 +24,14 @@ func main() {
 	flag.Parse()
 
 	var (
-		host, _    = os.Hostname()
-		workDir, _ = os.Getwd()
-		election   = &xconsul.Election{}
+		host, _     = os.Hostname()
+		workDir, _  = os.Getwd()
+		election    = &xconsul.Election{}
+		electionKey = "xmicro/election/"
 	)
 
 	if *role != "proxy" {
-		election = xconsul.BeginElection(host, *role)
+		election = xconsul.BeginElection(host, electionKey+"/"+*role)
 		go StartAPI(fmt.Sprintf(":%v", *port), election)
 	} else {
 		client, _ := xconsul.NewClient()
