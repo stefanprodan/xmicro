@@ -17,11 +17,13 @@ func StartAPI(address string, election *xconsul.Election) {
 	electionStatusHandler := HeadersMiddleware(ElectionMiddleware(election, http.HandlerFunc(statusResponse)))
 	pingHandler := HeadersMiddleware(http.HandlerFunc(pingResponse))
 	healthHandler := HeadersMiddleware(http.HandlerFunc(healthResponse))
+	errorHandler := HeadersMiddleware(http.HandlerFunc(errorResponse))
 
 	mux := new(http.ServeMux)
 	mux.Handle("/", electionStatusHandler)
 	mux.Handle("/ping", pingHandler)
 	mux.Handle("/health", healthHandler)
+	mux.Handle("/error", errorHandler)
 	log.Printf("API started on %s", address)
 	log.Fatal(http.ListenAndServe(address, mux))
 }
@@ -51,6 +53,8 @@ func healthResponse(w http.ResponseWriter, r *http.Request) {
 	appCtx.Render.JSON(w, http.StatusOK, appCtx)
 }
 
+func errorResponse(w http.ResponseWriter, r *http.Request) {
+	appCtx.Render.Text(w, http.StatusNotAcceptable, "Not Acceptable")
 }
 
 func statusResponse(w http.ResponseWriter, r *http.Request) {
