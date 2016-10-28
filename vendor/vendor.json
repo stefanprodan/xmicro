@@ -3,6 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "JiTaaqMJ0WfwRKycs3y6rDKZgAk=",
+			"path": "github.com/Sirupsen/logrus",
+			"revision": "3ec0642a7fb6488f65b06f9040adc67e3990296a",
+			"revisionTime": "2016-08-29T20:23:21Z"
+		},
+		{
 			"checksumSHA1": "wndKZ4SHvLWOULB2ZEHlvmkY3Wg=",
 			"path": "github.com/hashicorp/consul/api",
 			"revision": "104b12040a8fbe6153d1a4f1be1b73d37bf699e5",
@@ -31,6 +37,12 @@
 			"path": "github.com/unrolled/render",
 			"revision": "526faf80cd4b305bb8134abea8d20d5ced74faa6",
 			"revisionTime": "2016-10-03T17:53:27Z"
+		},
+		{
+			"checksumSHA1": "aVgPDgwY3/t4J/JOw9H3FVMHqh0=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "c200b10b5d5e122be351b67af224adc6128af5bf",
+			"revisionTime": "2016-10-22T18:22:21Z"
 		}
 	],
 	"rootPath": "github.com/stefanprodan/xmicro"

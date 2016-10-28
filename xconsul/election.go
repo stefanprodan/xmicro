@@ -1,9 +1,9 @@
 package xconsul
 
 import (
-	"log"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	consul "github.com/hashicorp/consul/api"
 )
 
@@ -25,23 +25,23 @@ func (e *Election) start() {
 		default:
 			leader := e.GetLeader()
 			if leader != "" {
-				log.Printf("Leader is %s", leader)
+				log.Info("Leader is %s", leader)
 			} else {
-				log.Printf("No leader found, starting election...")
+				log.Info("No leader found, starting election...")
 			}
 			electionChan, err := e.consulLock.Lock(e.lockChan)
 			if err != nil {
-				log.Printf("Failed to acquire election lock %s", err.Error())
+				log.Warnf("Failed to acquire election lock %s", err.Error())
 			}
 			if electionChan != nil {
-				log.Printf("Acting as elected leader.")
+				log.Info("Acting as elected leader.")
 				e.isLeader = true
 				<-electionChan
 				e.isLeader = false
-				log.Println("Leadership lost, releasing lock.")
+				log.Warn("Leadership lost, releasing lock.")
 				e.consulLock.Unlock()
 			} else {
-				log.Println("Retrying election in 5s")
+				log.Info("Retrying election in 5s")
 				time.Sleep(5000 * time.Millisecond)
 			}
 		}

@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/stefanprodan/xmicro/xconsul"
 )
 
@@ -23,10 +23,7 @@ func StartAPI(address string, election *xconsul.Election) {
 	mux.Handle("/ping", pingHandler)
 	mux.Handle("/health", healthHandler)
 	log.Printf("API started on %s", address)
-	err := http.ListenAndServe(address, mux)
-	if err != nil {
-		log.Panic(err.Error())
-	}
+	log.Fatal(http.ListenAndServe(address, mux))
 }
 
 //ElectionMiddleware injects the election pointer

@@ -2,13 +2,13 @@ package xproxy
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	consul "github.com/hashicorp/consul/api"
 	watch "github.com/hashicorp/consul/watch"
 )
@@ -53,12 +53,12 @@ func (r *ReverseProxy) HandlerFunc() http.HandlerFunc {
 		endpoints, _ := r.ServiceRegistry.Lookup(name)
 
 		if len(endpoints) == 0 {
-			log.Printf("xproxy: service not found in registry " + name)
+			log.Warnf("xproxy: service not found in registry %s", name)
 			return
 		}
 
 		//random load balancer
-		//TODO: implement round robin (a mutex is required and could slow down the proxy)
+		//TODO: implement round robin
 		endpoint := endpoints[rand.Int()%len(endpoints)]
 
 		reverseProxy := &httputil.ReverseProxy{
@@ -111,13 +111,13 @@ func (r *ReverseProxy) startConsulWatchers() error {
 
 //reload services from Consul
 func (r *ReverseProxy) handleServiceChanges(idx uint64, data interface{}) {
-	log.Print("Service change detected")
+	log.Info("Service change detected")
 	r.ServiceRegistry.GetServices(r.ElectionKeyPrefix)
 }
 
 //reload leaders from Consul
 func (r *ReverseProxy) handleLeaderChanges(idx uint64, data interface{}) {
-	log.Print("Leader change detected")
+	log.Info("Leader change detected")
 	r.ServiceRegistry.GetServices(r.ElectionKeyPrefix)
 }
 

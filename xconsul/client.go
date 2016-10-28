@@ -3,9 +3,9 @@ package xconsul
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"sync"
 
+	log "github.com/Sirupsen/logrus"
 	consul "github.com/hashicorp/consul/api"
 	watch "github.com/hashicorp/consul/watch"
 )
