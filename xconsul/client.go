@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 
 	consul "github.com/hashicorp/consul/api"
 	watch "github.com/hashicorp/consul/watch"
@@ -13,7 +14,8 @@ import (
 type ConsulClient struct {
 	Client   *consul.Client
 	Config   *consul.Config
-	Watchers []*watch.WatchPlan
+	watchers []*watch.WatchPlan
+	mutex    sync.RWMutex
 }
 
 //NewClient returns a ConsulClient with defaults
@@ -113,42 +115,48 @@ func (c *ConsulClient) GetLeaderServices(electionKeyPrefix string) (map[string][
 	return registry, nil
 }
 
-//StartElectionWatcher starts a Consul watcher for the specified key
-func (c *ConsulClient) StartElectionWatcher(keyPrefix string) error {
+//StartKeyPrefixWatcher starts a Consul watcher for the specified key prefix
+func (c *ConsulClient) StartKeyPrefixWatcher(keyPrefix string, handler func(uint64, interface{})) error {
 	wt, err := watch.Parse(map[string]interface{}{"type": "keyprefix", "prefix": keyPrefix})
 	if err != nil {
 		return err
 	}
-	wt.Handler = handleLeaderChanges
+	wt.Handler = handler
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.watchers = append(c.watchers, wt)
 	go wt.Run(c.Config.Address)
 	return nil
 }
 
-func handleLeaderChanges(idx uint64, data interface{}) {
-	log.Print("Leader change detected")
+//LogChanges Consul watcher handler that logs changes as JSON
+func (c *ConsulClient) LogChanges(idx uint64, data interface{}) {
+	log.Print("Consul changes detected")
 	buf, _ := json.MarshalIndent(data, "", "    ")
 	log.Print(string(buf))
 }
 
 //StartServicesWatcher starts a Consul watcher for service catalog changes
-func (c *ConsulClient) StartServicesWatcher() error {
+func (c *ConsulClient) StartServicesWatcher(handler func(uint64, interface{})) error {
 	wt, err := watch.Parse(map[string]interface{}{"type": "services"})
 	if err != nil {
 		return err
 	}
-	wt.Handler = handleServicesChanges
+	wt.Handler = handler
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.watchers = append(c.watchers, wt)
 	go wt.Run(c.Config.Address)
 	return nil
 }
 
-func handleServicesChanges(idx uint64, data interface{}) {
+//LogServicesChanges Consul catalog watcher handler that logs the registered services
+func (c *ConsulClient) LogServicesChanges(idx uint64, data interface{}) {
 	services, _ := data.(map[string][]string)
-	log.Print("===> Registry <===")
-	config := consul.DefaultConfig()
-	c, _ := consul.NewClient(config)
+	log.Print("===> Catalog <===")
 	for service := range services {
 		log.Printf("%v", service)
-		r, _, err := c.Health().Service(service, "", false, nil)
+		r, _, err := c.Client.Health().Service(service, "", false, nil)
 		if err == nil {
 			for _, s := range r {
 				log.Printf("%v", s.Service)
@@ -158,4 +166,13 @@ func handleServicesChanges(idx uint64, data interface{}) {
 		}
 	}
 	log.Print("=================")
+}
+
+//Stop stops Consul watchers
+func (c *ConsulClient) Stop() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	for _, w := range c.watchers {
+		w.Stop()
+	}
 }
