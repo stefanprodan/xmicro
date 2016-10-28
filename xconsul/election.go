@@ -7,6 +7,7 @@ import (
 	consul "github.com/hashicorp/consul/api"
 )
 
+//Election holds the Consul leader election lock, config and status
 type Election struct {
 	electionKey string
 	isLeader    bool

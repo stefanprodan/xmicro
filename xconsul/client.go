@@ -9,25 +9,37 @@ import (
 	watch "github.com/hashicorp/consul/watch"
 )
 
-func NewClient() (*consul.Client, error) {
+//ConsulClient wrapper over api client
+type ConsulClient struct {
+	Client   *consul.Client
+	Config   *consul.Config
+	Watchers []*watch.WatchPlan
+}
+
+//NewClient returns a ConsulClient with defaults
+func NewClient() (*ConsulClient, error) {
 	config := consul.DefaultConfig()
 	client, err := consul.NewClient(config)
 	if err != nil {
-		return client, err
+		return nil, err
 	}
-
-	return client, nil
+	c := &ConsulClient{
+		Client: client,
+		Config: config,
+	}
+	return c, nil
 }
 
-func ListServices(c *consul.Client) error {
-	services, _, err := c.Catalog().Services(nil)
+//ListServices outputs all services in Consul catalog
+func (c *ConsulClient) ListServices() error {
+	services, _, err := c.Client.Catalog().Services(nil)
 	if err != nil {
 		return err
 	}
-	for service, _ := range services {
+	for service := range services {
 		log.Printf("%v", service)
 
-		r, _, err := c.Health().Service(service, "", false, nil)
+		r, _, err := c.Client.Health().Service(service, "", false, nil)
 		if err != nil {
 			return err
 		}
@@ -39,16 +51,17 @@ func ListServices(c *consul.Client) error {
 	return nil
 }
 
-func GetServices(c *consul.Client) (map[string][]string, error) {
+//GetServices returns a map of services and endpoints
+func (c *ConsulClient) GetServices() (map[string][]string, error) {
 
 	registry := make(map[string][]string)
 
-	services, _, err := c.Catalog().Services(nil)
+	services, _, err := c.Client.Catalog().Services(nil)
 	if err != nil {
 		return registry, err
 	}
-	for service, _ := range services {
-		r, _, err := c.Health().Service(service, "", false, nil)
+	for service := range services {
+		r, _, err := c.Client.Health().Service(service, "", false, nil)
 		if err != nil {
 			return registry, err
 		}
@@ -60,16 +73,17 @@ func GetServices(c *consul.Client) (map[string][]string, error) {
 	return registry, nil
 }
 
-func GetLeaderServices(c *consul.Client, electionKeyPrefix string) (map[string][]string, error) {
+//GetLeaderServices returns a list of elected leaders and their endpoints
+func (c *ConsulClient) GetLeaderServices(electionKeyPrefix string) (map[string][]string, error) {
 
 	registry := make(map[string][]string)
 
-	services, _, err := c.Catalog().Services(nil)
+	services, _, err := c.Client.Catalog().Services(nil)
 	if err != nil {
 		return registry, err
 	}
-	for service, _ := range services {
-		r, _, err := c.Health().Service(service, "", false, nil)
+	for service := range services {
+		r, _, err := c.Client.Health().Service(service, "", false, nil)
 		if err != nil {
 			return registry, err
 		}
@@ -78,10 +92,10 @@ func GetLeaderServices(c *consul.Client, electionKeyPrefix string) (map[string][
 			//detect if service is subject to leader election
 			if len(s.Service.Tags) == 2 && s.Service.Tags[0] == "le" {
 				var electionKey = electionKeyPrefix + s.Service.Tags[1]
-				kvpair, _, err := c.KV().Get(electionKey, nil)
+				kvpair, _, err := c.Client.KV().Get(electionKey, nil)
 				if kvpair != nil && err == nil {
 					//check if a session is locking the key
-					sessionInfo, _, err := c.Session().Info(kvpair.Session, nil)
+					sessionInfo, _, err := c.Client.Session().Info(kvpair.Session, nil)
 					if err == nil && sessionInfo != nil {
 						//extract leader name from session name and validate
 						_, present := registry[s.Service.Tags[1]]
@@ -99,14 +113,14 @@ func GetLeaderServices(c *consul.Client, electionKeyPrefix string) (map[string][
 	return registry, nil
 }
 
-func StartElectionWatcher(keyPrefix string) error {
+//StartElectionWatcher starts a Consul watcher for the specified key
+func (c *ConsulClient) StartElectionWatcher(keyPrefix string) error {
 	wt, err := watch.Parse(map[string]interface{}{"type": "keyprefix", "prefix": keyPrefix})
 	if err != nil {
 		return err
 	}
 	wt.Handler = handleLeaderChanges
-	config := consul.DefaultConfig()
-	go wt.Run(config.Address)
+	go wt.Run(c.Config.Address)
 	return nil
 }
 
@@ -116,14 +130,14 @@ func handleLeaderChanges(idx uint64, data interface{}) {
 	log.Print(string(buf))
 }
 
-func StartServicesWatcher() error {
+//StartServicesWatcher starts a Consul watcher for service catalog changes
+func (c *ConsulClient) StartServicesWatcher() error {
 	wt, err := watch.Parse(map[string]interface{}{"type": "services"})
 	if err != nil {
 		return err
 	}
 	wt.Handler = handleServicesChanges
-	config := consul.DefaultConfig()
-	go wt.Run(config.Address)
+	go wt.Run(c.Config.Address)
 	return nil
 }
 
@@ -132,7 +146,7 @@ func handleServicesChanges(idx uint64, data interface{}) {
 	log.Print("===> Registry <===")
 	config := consul.DefaultConfig()
 	c, _ := consul.NewClient(config)
-	for service, _ := range services {
+	for service := range services {
 		log.Printf("%v", service)
 		r, _, err := c.Health().Service(service, "", false, nil)
 		if err == nil {

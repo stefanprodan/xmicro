@@ -13,6 +13,7 @@ import (
 	watch "github.com/hashicorp/consul/watch"
 )
 
+// ReverseProxy holds the proxy configuration, registry and Consul watchers
 type ReverseProxy struct {
 	ServiceRegistry     Registry
 	ElectionKeyPrefix   string
@@ -35,7 +36,7 @@ func (r *ReverseProxy) StartConsulSync() error {
 
 // HandlerFunc creates a http handler that will resolve services from Consul.
 // If a service has the cl tag, the proxy will point to the leader.
-// If multiple addreses are found for a service then it will load balance between those instaces.
+// If multiple addresses are found for a service then it will load balance between those instances.
 func (r *ReverseProxy) HandlerFunc() http.HandlerFunc {
 	transport := &http.Transport{
 		DisableKeepAlives:   true,
@@ -80,7 +81,7 @@ func parseServiceName(target *url.URL) (name string, err error) {
 	}
 	tmp := strings.Split(path, "/")
 	if len(tmp) < 1 {
-		return "", fmt.Errorf("xproxy: parse service name faild, invalid path %s", path)
+		return "", fmt.Errorf("xproxy: parse service name failed, invalid path %s", path)
 	}
 	name = tmp[0]
 	target.Path = "/" + strings.Join(tmp[1:], "/")
@@ -120,6 +121,7 @@ func (r *ReverseProxy) handleLeaderChanges(idx uint64, data interface{}) {
 	r.ServiceRegistry.GetServices(r.ElectionKeyPrefix)
 }
 
+// Stop stops the Consul watchers
 func (r *ReverseProxy) Stop() {
 	r.serviceWatch.Stop()
 	r.leaderWatch.Stop()

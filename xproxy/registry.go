@@ -39,7 +39,7 @@ func (reg Registry) GetServices(electionKeyPrefix string) error {
 	if err != nil {
 		return err
 	}
-	for service, _ := range services {
+	for service := range services {
 		//TODO: get only healthy services (the 15s health check startup delay could be a problem)
 		services, _, err := c.Health().Service(service, "", false, nil)
 		if err != nil {
@@ -73,7 +73,7 @@ func (reg Registry) GetServices(electionKeyPrefix string) error {
 		}
 	}
 
-	//lock and copy services
+	//lock and update local registry
 	lock.Lock()
 	for k, v := range registry {
 		reg[k] = v

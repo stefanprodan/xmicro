@@ -11,6 +11,7 @@ import (
 	unrender "github.com/unrolled/render"
 )
 
+//AppContext app-wide configuration
 type AppContext struct {
 	Role      string
 	Version   string
@@ -34,6 +35,7 @@ func initCtx(env string, port int, role string) error {
 	if err != nil {
 		return err
 	}
+
 	hostname, _ := os.Hostname()
 	if err != nil {
 		return err
