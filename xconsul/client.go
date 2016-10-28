@@ -86,15 +86,13 @@ func GetLeaderServices(c *consul.Client, electionKeyPrefix string) (map[string][
 						//extract leader name from session name and validate
 						_, present := registry[s.Service.Tags[1]]
 						if !present && service == sessionInfo.Name {
-							//add service to registry using the tag only if the current service is the leader
+							//add service to registry using the tag as service name
 							registry[s.Service.Tags[1]] = append(registry[s.Service.Tags[1]], fmt.Sprintf("%s:%v", s.Service.Address, s.Service.Port))
 						}
 					} else {
 						return registry, err
 					}
 				}
-			} else {
-				registry[service] = append(registry[service], fmt.Sprintf("%s:%v", s.Service.Address, s.Service.Port))
 			}
 		}
 	}

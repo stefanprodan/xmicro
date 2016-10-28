@@ -13,7 +13,7 @@ var lock sync.RWMutex
 // Registry in memory map of elected leaders and services
 type Registry map[string][]string
 
-// Lookup seaches in registry for a service and returns all endpoints
+// Lookup returns service endpoints
 func (reg Registry) Lookup(service string) ([]string, error) {
 	lock.RLock()
 	targets, ok := reg[service]
@@ -24,7 +24,7 @@ func (reg Registry) Lookup(service string) ([]string, error) {
 	return targets, nil
 }
 
-// GetServices gets elected leaders snd services to be balanced from Consul
+// GetServices gets elected leaders snd services from Consul
 func (reg Registry) GetServices(electionKeyPrefix string) error {
 
 	registry := make(map[string][]string)
@@ -40,7 +40,7 @@ func (reg Registry) GetServices(electionKeyPrefix string) error {
 		return err
 	}
 	for service, _ := range services {
-		//TODO: get only healthy services (the 15s health check startup deplay could be a problem)
+		//TODO: get only healthy services (the 15s health check startup delay could be a problem)
 		services, _, err := c.Health().Service(service, "", false, nil)
 		if err != nil {
 			return err
