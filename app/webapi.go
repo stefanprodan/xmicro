@@ -51,6 +51,8 @@ func healthResponse(w http.ResponseWriter, r *http.Request) {
 	appCtx.Render.JSON(w, http.StatusOK, appCtx)
 }
 
+}
+
 func statusResponse(w http.ResponseWriter, r *http.Request) {
 	election := r.Context().Value(electionContextKey).(*xconsul.Election)
 	leader := election.GetLeader()

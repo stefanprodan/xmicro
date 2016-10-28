@@ -25,6 +25,9 @@ func StartProxy(address string, proxy *xproxy.ReverseProxy) {
 	http.HandleFunc("/health", func(w http.ResponseWriter, req *http.Request) {
 		appCtx.Render.JSON(w, http.StatusOK, appCtx)
 	})
+	http.HandleFunc("/error", func(w http.ResponseWriter, req *http.Request) {
+		appCtx.Render.Text(w, http.StatusNotAcceptable, "Not Acceptable")
+	})
 
 	log.Printf("Proxy started on %s", address)
 	log.Fatal(http.ListenAndServe(address, nil))
