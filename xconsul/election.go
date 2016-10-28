@@ -57,7 +57,8 @@ func (e *Election) Stop() {
 }
 
 //BeginElection starts a leader election on a go routine
-func BeginElection(serviceName string, key string) *Election {
+func BeginElection(serviceName string, keyPrefix string, role string) *Election {
+	key := keyPrefix + role
 	config := consul.DefaultConfig()
 	client, _ := consul.NewClient(config)
 	opts := &consul.LockOptions{

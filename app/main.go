@@ -15,10 +15,14 @@ import (
 )
 
 type appFlags struct {
-	port     int
-	env      string
-	role     string
-	logLevel string
+	port                     int
+	env                      string
+	role                     string
+	logLevel                 string
+	electionKeyPrefix        string
+	proxyScheme              string
+	proxyMaxIdleConnsPerHost int
+	proxyDisableKeepAlives   bool
 }
 
 type stoppableService interface {
@@ -31,19 +35,22 @@ func main() {
 	flag.StringVar(&flags.env, "env", "DEBUG", "environment: DEBUG, DEV, STG, PROD")
 	flag.StringVar(&flags.role, "role", "proxy", "roles: proxy, frontend, backend, storage")
 	flag.StringVar(&flags.logLevel, "loglevel", "info", "logging threshold level: debug|info|warn|error|fatal|panic")
+	flag.StringVar(&flags.electionKeyPrefix, "electionKeyPrefix", "xmicro/election/", "format: namespace/election/")
+	flag.StringVar(&flags.proxyScheme, "proxyScheme", "http", "proxy scheme: http or https")
+	flag.IntVar(&flags.proxyMaxIdleConnsPerHost, "proxyMaxIdleConnsPerHost", 500, "proxy max idle connections per host")
+	flag.BoolVar(&flags.proxyDisableKeepAlives, "proxyDisableKeepAlives", true, "proxy disable KeepAlive")
 	flag.Parse()
 
 	setLogLevel(flags.logLevel)
 
 	var (
-		electionKeyPrefix = "xmicro/election/"
-		election          = &xconsul.Election{}
-		proxy             = &xproxy.ReverseProxy{
+		election = &xconsul.Election{}
+		proxy    = &xproxy.ReverseProxy{
 			ServiceRegistry:     xproxy.Registry{},
-			ElectionKeyPrefix:   electionKeyPrefix,
-			Scheme:              "http",
-			MaxIdleConnsPerHost: 500,
-			DisableKeepAlives:   true,
+			ElectionKeyPrefix:   flags.electionKeyPrefix,
+			Scheme:              flags.proxyScheme,
+			MaxIdleConnsPerHost: flags.proxyMaxIdleConnsPerHost,
+			DisableKeepAlives:   flags.proxyDisableKeepAlives,
 		}
 	)
 
@@ -58,7 +65,7 @@ func main() {
 		go StartProxy(fmt.Sprintf(":%v", appCtx.Port), proxy)
 
 	} else {
-		election = xconsul.BeginElection(appCtx.Hostname, electionKeyPrefix+appCtx.Role)
+		election = xconsul.BeginElection(appCtx.Hostname, flags.electionKeyPrefix, appCtx.Role)
 		go StartAPI(fmt.Sprintf(":%v", appCtx.Port), election)
 	}
 
