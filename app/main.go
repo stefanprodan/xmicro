@@ -34,7 +34,7 @@ func main() {
 	flag.IntVar(&flags.port, "port", 8000, "HTTP port to listen on")
 	flag.StringVar(&flags.env, "env", "DEBUG", "environment: DEBUG, DEV, STG, PROD")
 	flag.StringVar(&flags.role, "role", "proxy", "roles: proxy, frontend, backend, storage")
-	flag.StringVar(&flags.logLevel, "loglevel", "info", "logging threshold level: debug|info|warn|error|fatal|panic")
+	flag.StringVar(&flags.logLevel, "loglevel", "debug", "logging threshold level: debug|info|warn|error|fatal|panic")
 	flag.StringVar(&flags.electionKeyPrefix, "electionKeyPrefix", "xmicro/election/", "format: namespace/election/")
 	flag.StringVar(&flags.proxyScheme, "proxyScheme", "http", "proxy scheme: http or https")
 	flag.IntVar(&flags.proxyMaxIdleConnsPerHost, "proxyMaxIdleConnsPerHost", 500, "proxy max idle connections per host")
