@@ -27,6 +27,7 @@ type ReverseProxy struct {
 
 // StartConsulSync watches for changes in Consul Registry and syncs with the in memory registry
 func (r *ReverseProxy) StartConsulSync() error {
+	r.ServiceRegistry.Catalog = make(map[string][]string)
 	r.ServiceRegistry.GetServices(r.ElectionKeyPrefix)
 	err := r.startConsulWatchers()
 	if err != nil {
@@ -136,25 +137,28 @@ func (r *ReverseProxy) Stop() {
 // If a service has the cl tag, the proxy will point to the leader.
 func (r *ReverseProxy) ReverseHandlerFunc() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		name, err := parseServiceName(req.URL)
+		service, err := parseServiceName(req.URL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		//resolve service name address
-		endpoints, _ := r.ServiceRegistry.Lookup(name)
+		endpoints, _ := r.ServiceRegistry.Lookup(service)
 
 		if len(endpoints) == 0 {
-			log.Warnf("xproxy: service not found in registry %s", name)
+			log.Warnf("xproxy: service not found in registry %s", service)
 			return
 		}
 
 		endpoint := endpoints[0]
 		redirect, _ := url.ParseRequestURI(r.Scheme + "://" + endpoint)
 
-		revproxy := httputil.NewSingleHostReverseProxy(redirect)
-		revproxy.Transport = &proxyTransport{}
-		revproxy.ServeHTTP(w, req)
+		rproxy := httputil.NewSingleHostReverseProxy(redirect)
+		rproxy.FlushInterval = 100 * time.Microsecond
+		rproxy.Transport = &proxyTransport{
+			service: service,
+		}
+		rproxy.ServeHTTP(w, req)
 	})
 }
 
@@ -164,7 +168,7 @@ func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	response, err := http.DefaultTransport.RoundTrip(req)
 
 	if err == nil {
-		log.Debugf("Round trip: %v, code: %v, duration: %v", req.URL, response.StatusCode, time.Now().UTC().Sub(start))
+		log.Debugf("Round trip to %v at %v, code: %v, duration: %v", t.service, req.URL, response.StatusCode, time.Now().UTC().Sub(start))
 	} else {
 		log.Warnf("Round trip error %s", err.Error())
 	}
@@ -173,5 +177,5 @@ func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 type proxyTransport struct {
-	// CapturedTransport http.RoundTripper
+	service string
 }

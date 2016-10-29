@@ -15,7 +15,7 @@ type ConsulClient struct {
 	Client   *consul.Client
 	Config   *consul.Config
 	watchers []*watch.WatchPlan
-	mutex    sync.RWMutex
+	mutex    sync.Mutex
 }
 
 //NewClient returns a ConsulClient with defaults

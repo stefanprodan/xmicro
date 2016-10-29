@@ -8,16 +8,17 @@ import (
 	consul "github.com/hashicorp/consul/api"
 )
 
-var lock sync.RWMutex
-
 // Registry in memory map of elected leaders and services
-type Registry map[string][]string
+type Registry struct {
+	Catalog map[string][]string
+	lock    sync.RWMutex
+}
 
 // Lookup returns service endpoints
 func (reg Registry) Lookup(service string) ([]string, error) {
-	lock.RLock()
-	targets, ok := reg[service]
-	lock.RUnlock()
+	reg.lock.RLock()
+	targets, ok := reg.Catalog[service]
+	reg.lock.RUnlock()
 	if !ok {
 		return nil, errors.New("service " + service + " not found")
 	}
@@ -47,8 +48,11 @@ func (reg Registry) GetServices(electionKeyPrefix string) error {
 		}
 
 		for _, s := range services {
+			if s.Service.Address == "" {
+				continue
+			}
 			//detect if service is subject to leader election
-			if len(s.Service.Tags) == 2 && s.Service.Tags[0] == "le" {
+			if len(s.Service.Tags) >= 2 && s.Service.Tags[0] == "le" {
 				//compose election key using the second tag
 				var electionKey = electionKeyPrefix + s.Service.Tags[1]
 				kvpair, _, err := c.KV().Get(electionKey, nil)
@@ -73,12 +77,15 @@ func (reg Registry) GetServices(electionKeyPrefix string) error {
 		}
 	}
 
-	//lock and update local registry
-	lock.Lock()
-	for k, v := range registry {
-		reg[k] = v
+	//update local registry
+	reg.lock.Lock()
+	defer reg.lock.Unlock()
+	for k := range reg.Catalog {
+		delete(reg.Catalog, k)
 	}
-	lock.Unlock()
+	for k, v := range registry {
+		reg.Catalog[k] = v
+	}
 
 	return nil
 }
