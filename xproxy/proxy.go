@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -169,10 +170,12 @@ func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	if err == nil {
 		log.Debugf("Round trip to %v at %v, code: %v, duration: %v", t.service, req.URL, response.StatusCode, time.Now().UTC().Sub(start))
+		xproxy_roundtrips_total.WithLabelValues(t.service, strconv.Itoa(response.StatusCode)).Inc()
 	} else {
 		log.Warnf("Round trip error %s", err.Error())
 	}
 
+	xproxy_roundtrips_latency.WithLabelValues(t.service).Observe(time.Since(start).Seconds())
 	return response, err
 }
 
