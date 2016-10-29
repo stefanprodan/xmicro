@@ -163,7 +163,11 @@ func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	start := time.Now().UTC()
 	response, err := http.DefaultTransport.RoundTrip(req)
 
-	log.Debugf("Round trip: %v, code: %v, duration: %v", req.URL, response.StatusCode, time.Now().UTC().Sub(start))
+	if err == nil {
+		log.Debugf("Round trip: %v, code: %v, duration: %v", req.URL, response.StatusCode, time.Now().UTC().Sub(start))
+	} else {
+		log.Warnf("Round trip error %s", err.Error())
+	}
 
 	return response, err
 }
