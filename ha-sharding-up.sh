@@ -24,6 +24,7 @@ docker run -d -p 8000:8000 \
 --name "$node" \
 --network "$network" \
 --restart unless-stopped \
+--ulimit nofile=65536:65536 \
 -e CONSUL_HTTP_ADDR="${hostIP}:8500" \
 -e SERVICE_NAME="$node" \
 -e SERVICE_TAGS="$role" \
@@ -33,7 +34,8 @@ $image \
 xmicro -env=DEBUG \
 -port=8000 \
 -role=$role \
--loglevel=info
+-loglevel=info \
+-proxyMaxIdleConnsPerHost=10000
 
 # shard1 primary
 node="${image}-node1"
