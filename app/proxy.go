@@ -15,7 +15,7 @@ func StartProxy(address string, proxy *xproxy.ReverseProxy) {
 		log.Fatal(err.Error())
 	}
 
-	http.HandleFunc("/", proxy.HandlerFunc())
+	http.HandleFunc("/", proxy.ReverseHandlerFunc())
 	http.HandleFunc("/registry", func(w http.ResponseWriter, req *http.Request) {
 		appCtx.Render.JSON(w, http.StatusOK, proxy.ServiceRegistry)
 	})

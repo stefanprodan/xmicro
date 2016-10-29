@@ -7,6 +7,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	consul "github.com/hashicorp/consul/api"
@@ -31,16 +32,20 @@ func (r *ReverseProxy) StartConsulSync() error {
 	if err != nil {
 		return err
 	}
+
+	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = r.MaxIdleConnsPerHost
+	http.DefaultTransport.(*http.Transport).DisableKeepAlives = r.DisableKeepAlives
+
 	return nil
 }
 
 // HandlerFunc creates a http handler that will resolve services from Consul.
 // If a service has the cl tag, the proxy will point to the leader.
 // If multiple addresses are found for a service then it will load balance between those instances.
-func (r *ReverseProxy) HandlerFunc() http.HandlerFunc {
+func (r *ReverseProxy) LoadBalanceHandlerFunc() http.HandlerFunc {
 	transport := &http.Transport{
-		DisableKeepAlives:   true,
-		MaxIdleConnsPerHost: 500,
+		DisableKeepAlives:   r.DisableKeepAlives,
+		MaxIdleConnsPerHost: r.MaxIdleConnsPerHost,
 	}
 	return func(w http.ResponseWriter, req *http.Request) {
 		name, err := parseServiceName(req.URL)
@@ -125,4 +130,44 @@ func (r *ReverseProxy) handleLeaderChanges(idx uint64, data interface{}) {
 func (r *ReverseProxy) Stop() {
 	r.serviceWatch.Stop()
 	r.leaderWatch.Stop()
+}
+
+// ReverseHandlerFunc creates a http handler that will resolve services from Consul.
+// If a service has the cl tag, the proxy will point to the leader.
+func (r *ReverseProxy) ReverseHandlerFunc() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		name, err := parseServiceName(req.URL)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		//resolve service name address
+		endpoints, _ := r.ServiceRegistry.Lookup(name)
+
+		if len(endpoints) == 0 {
+			log.Warnf("xproxy: service not found in registry %s", name)
+			return
+		}
+
+		endpoint := endpoints[0]
+		redirect, _ := url.ParseRequestURI(r.Scheme + "://" + endpoint)
+
+		revproxy := httputil.NewSingleHostReverseProxy(redirect)
+		revproxy.Transport = &proxyTransport{}
+		revproxy.ServeHTTP(w, req)
+	})
+}
+
+//RoundTrip logs the request URL, StatusCode and duration
+func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	start := time.Now().UTC()
+	response, err := http.DefaultTransport.RoundTrip(req)
+
+	log.Debugf("Round trip: %v, code: %v, duration: %v", req.URL, response.StatusCode, time.Now().UTC().Sub(start))
+
+	return response, err
+}
+
+type proxyTransport struct {
+	// CapturedTransport http.RoundTripper
 }
