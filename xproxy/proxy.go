@@ -163,7 +163,7 @@ func (r *ReverseProxy) ReverseHandlerFunc() http.HandlerFunc {
 	})
 }
 
-//RoundTrip logs the request URL, StatusCode and duration
+//RoundTrip records prometheus metrics. On debug logs the request URL, status code and duration.
 func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	start := time.Now().UTC()
 	response, err := http.DefaultTransport.RoundTrip(req)
@@ -172,6 +172,8 @@ func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		log.Debugf("Round trip to %v at %v, code: %v, duration: %v", t.service, req.URL, response.StatusCode, time.Now().UTC().Sub(start))
 		xproxy_roundtrips_total.WithLabelValues(t.service, strconv.Itoa(response.StatusCode)).Inc()
 	} else {
+		// set status code 5000 for transport errors
+		xproxy_roundtrips_total.WithLabelValues(t.service, strconv.Itoa(5000)).Inc()
 		log.Warnf("Round trip error %s", err.Error())
 	}
 
