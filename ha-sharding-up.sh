@@ -32,7 +32,8 @@ docker run -d -p 8000:8000 \
 $image \
 xmicro -env=DEBUG \
 -port=8000 \
--role=$role 
+-role=$role \
+-loglevel=info
 
 # shard1 primary
 node="${image}-node1"
@@ -50,7 +51,8 @@ docker run -d -p 8001:8000 \
 $image \
 xmicro -env=DEBUG \
 -port=8000 \
--role=$role 
+-role=$role \
+-loglevel=info
 
 # shard2 primary
 node="${image}-node2"
@@ -68,7 +70,8 @@ docker run -d -p 8002:8000 \
 $image \
 xmicro -env=DEBUG \
 -port=8000 \
--role=$role 
+-role=$role \
+-loglevel=info
 
 # shard1 standby
 node="${image}-node1-standby"
@@ -86,7 +89,8 @@ docker run -d -p 8003:8000 \
 $image \
 xmicro -env=DEBUG \
 -port=8000 \
--role=$role 
+-role=$role \
+-loglevel=info
 
 # shard2 standby
 node="${image}-node2-standby"
@@ -104,4 +108,5 @@ docker run -d -p 8004:8000 \
 $image \
 xmicro -env=DEBUG \
 -port=8000 \
--role=$role
+-role=$role \
+-loglevel=info
