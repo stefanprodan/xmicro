@@ -11,7 +11,7 @@ import (
 	unrender "github.com/unrolled/render"
 )
 
-//AppContext app-wide configuration
+// AppContext app-wide configuration
 type AppContext struct {
 	Role      string
 	Version   string

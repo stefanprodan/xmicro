@@ -11,7 +11,7 @@ import (
 
 const electionContextKey = "election"
 
-//StartAPI starts the HTTP API server
+// StartAPI starts the HTTP API server
 func StartAPI(address string, election *xconsul.Election) {
 
 	electionStatusHandler := HeadersMiddleware(ElectionMiddleware(election, http.HandlerFunc(statusResponse)))
@@ -28,7 +28,7 @@ func StartAPI(address string, election *xconsul.Election) {
 	log.Fatal(http.ListenAndServe(address, mux))
 }
 
-//ElectionMiddleware injects the election pointer
+// ElectionMiddleware injects the election pointer
 func ElectionMiddleware(election *xconsul.Election, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), electionContextKey, election)
@@ -36,7 +36,7 @@ func ElectionMiddleware(election *xconsul.Election, next http.Handler) http.Hand
 	})
 }
 
-//HeadersMiddleware injects server headers
+// HeadersMiddleware injects server headers
 func HeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Server", "xmicro")

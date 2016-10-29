@@ -41,7 +41,7 @@ func (reg Registry) GetServices(electionKeyPrefix string) error {
 		return err
 	}
 	for service := range services {
-		//TODO: get only healthy services (the 15s health check startup delay could be a problem)
+		// TODO: get only healthy services (the 15s health check startup delay could be a problem)
 		services, _, err := c.Health().Service(service, "", false, nil)
 		if err != nil {
 			return err
@@ -51,19 +51,19 @@ func (reg Registry) GetServices(electionKeyPrefix string) error {
 			if s.Service.Address == "" {
 				continue
 			}
-			//detect if service is subject to leader election
+			// detect if service is subject to leader election
 			if len(s.Service.Tags) >= 2 && s.Service.Tags[0] == "le" {
-				//compose election key using the second tag
+				// compose election key using the second tag
 				var electionKey = electionKeyPrefix + s.Service.Tags[1]
 				kvpair, _, err := c.KV().Get(electionKey, nil)
 				if kvpair != nil && err == nil {
-					//check if a session is locking the key
+					// check if a session is locking the key
 					sessionInfo, _, err := c.Session().Info(kvpair.Session, nil)
 					if err == nil && sessionInfo != nil {
-						//extract leader name from session name and validate
+						// extract leader name from session name and validate
 						_, present := registry[s.Service.Tags[1]]
 						if !present && service == sessionInfo.Name {
-							//add service to registry using the tag only if the current service is the leader
+							// add service to registry using the tag only if the current service is the leader
 							registry[s.Service.Tags[1]] = append(registry[s.Service.Tags[1]], fmt.Sprintf("%s:%v", s.Service.Address, s.Service.Port))
 						}
 					} else {
@@ -77,7 +77,7 @@ func (reg Registry) GetServices(electionKeyPrefix string) error {
 		}
 	}
 
-	//update local registry
+	// update local registry
 	reg.lock.Lock()
 	defer reg.lock.Unlock()
 	for k := range reg.Catalog {

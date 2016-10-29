@@ -7,7 +7,7 @@ import (
 	consul "github.com/hashicorp/consul/api"
 )
 
-//Election holds the Consul leader election lock, config and status
+// Election holds the Consul leader election lock, config and status
 type Election struct {
 	electionKey string
 	isLeader    bool
@@ -48,7 +48,7 @@ func (e *Election) start() {
 	}
 }
 
-//Stop ends the election routine and releases the lock
+// Stop ends the election routine and releases the lock
 func (e *Election) Stop() {
 	e.stopChan <- struct{}{}
 	e.lockChan <- struct{}{}
@@ -56,7 +56,7 @@ func (e *Election) Stop() {
 	e.isLeader = false
 }
 
-//BeginElection starts a leader election on a go routine
+// BeginElection starts a leader election on a go routine
 func BeginElection(serviceName string, keyPrefix string, role string) *Election {
 	key := keyPrefix + role
 	config := consul.DefaultConfig()
@@ -80,7 +80,7 @@ func BeginElection(serviceName string, keyPrefix string, role string) *Election 
 	return election
 }
 
-//GetLeader returns leader name from Consul session
+// GetLeader returns leader name from Consul session
 func (e *Election) GetLeader() string {
 	config := consul.DefaultConfig()
 	client, err := consul.NewClient(config)
@@ -97,7 +97,7 @@ func (e *Election) GetLeader() string {
 	return ""
 }
 
-//IsLeader returns true if the current instance is acting as leader
+// IsLeader returns true if the current instance is acting as leader
 func (e *Election) IsLeader() bool {
 	return e.isLeader
 }

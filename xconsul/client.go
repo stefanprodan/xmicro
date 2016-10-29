@@ -10,7 +10,7 @@ import (
 	watch "github.com/hashicorp/consul/watch"
 )
 
-//ConsulClient wrapper over api client
+// ConsulClient wrapper over api client
 type ConsulClient struct {
 	Client   *consul.Client
 	Config   *consul.Config
@@ -18,7 +18,7 @@ type ConsulClient struct {
 	mutex    sync.Mutex
 }
 
-//NewClient returns a ConsulClient with defaults
+// NewClient returns a ConsulClient with defaults
 func NewClient() (*ConsulClient, error) {
 	config := consul.DefaultConfig()
 	client, err := consul.NewClient(config)
@@ -32,7 +32,7 @@ func NewClient() (*ConsulClient, error) {
 	return c, nil
 }
 
-//ListServices outputs all services in Consul catalog
+// ListServices outputs all services in Consul catalog
 func (c *ConsulClient) ListServices() error {
 	services, _, err := c.Client.Catalog().Services(nil)
 	if err != nil {
@@ -53,7 +53,7 @@ func (c *ConsulClient) ListServices() error {
 	return nil
 }
 
-//GetServices returns a map of services and endpoints
+// GetServices returns a map of services and endpoints
 func (c *ConsulClient) GetServices() (map[string][]string, error) {
 
 	registry := make(map[string][]string)
@@ -75,7 +75,7 @@ func (c *ConsulClient) GetServices() (map[string][]string, error) {
 	return registry, nil
 }
 
-//GetLeaderServices returns a list of elected leaders and their endpoints
+// GetLeaderServices returns a map of elected leaders and their endpoints
 func (c *ConsulClient) GetLeaderServices(electionKeyPrefix string) (map[string][]string, error) {
 
 	registry := make(map[string][]string)
@@ -115,7 +115,7 @@ func (c *ConsulClient) GetLeaderServices(electionKeyPrefix string) (map[string][
 	return registry, nil
 }
 
-//StartKeyPrefixWatcher starts a Consul watcher for the specified key prefix
+// StartKeyPrefixWatcher starts a Consul watcher for the specified key prefix
 func (c *ConsulClient) StartKeyPrefixWatcher(keyPrefix string, handler func(uint64, interface{})) error {
 	wt, err := watch.Parse(map[string]interface{}{"type": "keyprefix", "prefix": keyPrefix})
 	if err != nil {
@@ -129,14 +129,14 @@ func (c *ConsulClient) StartKeyPrefixWatcher(keyPrefix string, handler func(uint
 	return nil
 }
 
-//LogChanges Consul watcher handler that logs changes as JSON
+// LogChanges Consul watcher handler that logs changes as JSON
 func (c *ConsulClient) LogChanges(idx uint64, data interface{}) {
 	log.Print("Consul changes detected")
 	buf, _ := json.MarshalIndent(data, "", "    ")
 	log.Print(string(buf))
 }
 
-//StartServicesWatcher starts a Consul watcher for service catalog changes
+// StartServicesWatcher starts a Consul watcher for service catalog changes
 func (c *ConsulClient) StartServicesWatcher(handler func(uint64, interface{})) error {
 	wt, err := watch.Parse(map[string]interface{}{"type": "services"})
 	if err != nil {
@@ -150,7 +150,7 @@ func (c *ConsulClient) StartServicesWatcher(handler func(uint64, interface{})) e
 	return nil
 }
 
-//LogServicesChanges Consul catalog watcher handler that logs the registered services
+// LogServicesChanges Consul catalog watcher handler that logs the registered services
 func (c *ConsulClient) LogServicesChanges(idx uint64, data interface{}) {
 	services, _ := data.(map[string][]string)
 	log.Print("===> Catalog <===")
@@ -168,7 +168,7 @@ func (c *ConsulClient) LogServicesChanges(idx uint64, data interface{}) {
 	log.Print("=================")
 }
 
-//Stop stops Consul watchers
+// Stop stops Consul watchers
 func (c *ConsulClient) Stop() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()

@@ -95,7 +95,7 @@ func parseServiceName(target *url.URL) (name string, err error) {
 	return name, nil
 }
 
-//watch for services status changes (up/down or leadership changes)
+// watch for services status changes (up/down or leadership changes)
 func (r *ReverseProxy) startConsulWatchers() error {
 	serviceWatch, err := watch.Parse(map[string]interface{}{"type": "services"})
 	if err != nil {
@@ -116,13 +116,13 @@ func (r *ReverseProxy) startConsulWatchers() error {
 	return nil
 }
 
-//reload services from Consul
+// reload services from Consul
 func (r *ReverseProxy) handleServiceChanges(idx uint64, data interface{}) {
 	log.Info("Service change detected")
 	r.ServiceRegistry.GetServices(r.ElectionKeyPrefix)
 }
 
-//reload leaders from Consul
+// reload leaders from Consul
 func (r *ReverseProxy) handleLeaderChanges(idx uint64, data interface{}) {
 	log.Info("Leader change detected")
 	r.ServiceRegistry.GetServices(r.ElectionKeyPrefix)
@@ -163,7 +163,7 @@ func (r *ReverseProxy) ReverseHandlerFunc() http.HandlerFunc {
 	})
 }
 
-//RoundTrip records prometheus metrics. On debug logs the request URL, status code and duration.
+// RoundTrip records prometheus metrics. On debug logs the request URL, status code and duration.
 func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	start := time.Now().UTC()
 	response, err := http.DefaultTransport.RoundTrip(req)

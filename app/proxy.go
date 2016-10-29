@@ -8,7 +8,7 @@ import (
 	"github.com/stefanprodan/xmicro/xproxy"
 )
 
-//StartProxy starts the HTTP Reverse Proxy server backed by Consul
+// StartProxy starts the HTTP Reverse Proxy server backed by Consul
 func StartProxy(address string, proxy *xproxy.ReverseProxy) {
 
 	xproxy.RegisterMetrics()

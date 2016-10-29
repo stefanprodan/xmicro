@@ -24,6 +24,7 @@ var xproxy_roundtrips_latency = prometheus.NewSummaryVec(
 	[]string{"service"},
 )
 
+// RegisterMetrics exposes round trips total and latency for each service
 func RegisterMetrics() {
 	prometheus.MustRegister(xproxy_roundtrips_total)
 	prometheus.MustRegister(xproxy_roundtrips_latency)
